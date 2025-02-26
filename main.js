@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { ARButton } from 'three/addons/webxr/ARButton.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/Addons.js';
+import testModelURL from '/assets/models/test.glb?url';
 
 let container;
 let camera, scene, renderer;
@@ -43,44 +44,23 @@ function init() {
 
   const geometry = new THREE.CylinderGeometry(0.1, 0.1, 0.2, 32).translate(0, 0.1, 0);
 
-  console.log('le script se lance')
-  function gltfReader(gltf) {
-    let testModel = gltf.scene;
-    if (testModel != null) {
-
-      reticle.matrix.decompose(testModel.position, testModel.quaternion, testModel.scale);
-
-      testModel.scale.set(1, 1, 1);
-      scene.add(testModel);
-      console.log("Model loaded:", testModel);
-    } else {
-      console.log("Load FAILED.");
-    }
-  }
-  console.log('juste avant onSelect()')
   function onSelect() {
+
     if (reticle.visible) {
-      new GLTFLoader()
-        .setPath('assets/models/')
-        .load(
-          'test.glb',
-          gltfReader,
-          undefined,
-          function (error) {
-            console.error('Erreur de chargement du modèle GLB:', error);
-          }
-        );
-    } else {
-      console.log("ne rentre pas dans la condition")
+
+      const material = new THREE.MeshPhongMaterial({ color: 0xffffff * Math.random() });
+      const mesh = new THREE.Mesh(geometry, material);
+      reticle.matrix.decompose(mesh.position, mesh.quaternion, mesh.scale);
+      mesh.scale.y = Math.random() * 2 + 1;
+      console.log("ca marche")
+      scene.add(mesh);
+
     }
+
   }
-  console.log('apres onSelect()');
-
-
-
 
   controller = renderer.xr.getController(0);
-  controller.addEventListener('select', onSelect());
+  controller.addEventListener('select', onSelect);
   scene.add(controller);
 
   reticle = new THREE.Mesh(
@@ -97,20 +77,19 @@ function init() {
 
 }
 
-function onWindowResize() {
-
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-
-  renderer.setSize(window.innerWidth, window.innerHeight);
-
-}
-
-/*
 function loadData() {
-  new GLTFLoader()
-    .setPath('assets/models/')
-    .load('test.glb', gltfReader);
+  const loader = new GLTFLoader();
+  loader.load(
+    testModelURL,
+    (gltf) => {
+      console.log("Modèle chargé:", gltf.scene);
+      scene.add(gltf.scene);
+    },
+    undefined,
+    (error) => {
+      console.error("Erreur lors du chargement du modèle:", error);
+    }
+  );
 }
 
 
@@ -128,7 +107,16 @@ function gltfReader(gltf) {
 }
 
 loadData();
-*/
+
+function onWindowResize() {
+
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+}
+
 //
 
 function animate(timestamp, frame) {
