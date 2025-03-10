@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ARButton } from 'three/addons/webxr/ARButton.js';
+import { ARButton } from 'three/examples/jsm/webxr/ARButton.js';
 import { GLTFLoader } from 'three/examples/jsm/Addons.js';
 import TWEEN from '@tweenjs/tween.js';
 import testModelURL from '/assets/models/Xbot.glb?url';
@@ -14,6 +14,8 @@ let shadowMesh;
 let treeModel;
 let treesGroup = null;
 let score = 0;
+let scoreText;
+let scoreGroup;
 
 let hitTestSource = null;
 let hitTestSourceRequested = false;
@@ -24,6 +26,8 @@ const clock = new THREE.Clock();
 
 init();
 loadModel();
+
+
 
 function init() {
   container = document.createElement('div');
@@ -69,6 +73,25 @@ function init() {
     spacing: 2,
     scale: 0.3
   });
+
+  // Création du compteur de score 3D
+  scoreGroup = new THREE.Group();
+
+  // Créer un texte temporaire avec plane geometry
+  const tempGeometry = new THREE.PlaneGeometry(0.5, 0.2);
+  const tempMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.8
+  });
+  scoreText = new THREE.Mesh(tempGeometry, tempMaterial);
+
+  // Position fixe dans le coin supérieur gauche du champ de vision
+  scoreGroup.position.set(-0.4, 0.3, -1);
+  scoreGroup.add(scoreText);
+  scene.add(scoreGroup);
+
+  // On mettra à jour la position du groupe de score pour qu'il reste attaché à la caméra
 
   reticle = new THREE.Mesh(
     new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2),
@@ -165,6 +188,31 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+function updateScoreDisplay() {
+  // Crée une texture canvas pour afficher le score
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  canvas.width = 128;
+  canvas.height = 64;
+
+  context.fillStyle = '#000000';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  context.font = '24px Arial';
+  context.fillStyle = '#ffffff';
+  context.textAlign = 'center';
+  context.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 8);
+
+  // Mettre à jour la texture du compteur
+  if (scoreText.material.map) {
+    scoreText.material.map.dispose();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  scoreText.material.map = texture;
+  scoreText.material.needsUpdate = true;
+}
+
 function animate(timestamp, frame) {
   const delta = clock.getDelta();
   if (playerMixer) {
@@ -176,6 +224,18 @@ function animate(timestamp, frame) {
     shadowMesh.position.x = player.position.x;
     shadowMesh.position.z = player.position.z;
     shadowMesh.position.y = player.position.y;
+  }
+
+  // Faire suivre le compteur de score à la caméra
+  if (scoreGroup) {
+    // Position le groupe de score devant la caméra
+    scoreGroup.position.copy(camera.position);
+    scoreGroup.position.x -= 0.4; // Décaler vers la gauche
+    scoreGroup.position.y += 0.3; // Décaler vers le haut
+    scoreGroup.position.z -= 1; // Avancer d'un mètre devant la caméra
+
+    // Orienter vers la caméra
+    scoreGroup.quaternion.copy(camera.quaternion);
   }
 
   // Détection de collision entre le joueur et les arbres
@@ -191,7 +251,21 @@ function animate(timestamp, frame) {
         treesGroup.remove(tree);
         score++;
         console.log("Collision détectée ! Score :", score);
-        // Vous pouvez également mettre à jour un élément UI ici
+
+        // Met à jour l'affichage du score
+        updateScoreDisplay();
+
+        // Animation de l'affichage du score (scale up puis down)
+        new TWEEN.Tween(scoreGroup.scale)
+          .to({ x: 1.5, y: 1.5, z: 1.5 }, 200)
+          .easing(TWEEN.Easing.Cubic.Out)
+          .onComplete(() => {
+            new TWEEN.Tween(scoreGroup.scale)
+              .to({ x: 1, y: 1, z: 1 }, 200)
+              .easing(TWEEN.Easing.Cubic.In)
+              .start();
+          })
+          .start();
       }
     }
   }

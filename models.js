@@ -107,7 +107,7 @@ export class Model {
                 }
                 scene.add(group);
                 // Affectation du groupe à la variable globale pour collision
-                treesGroup = group;
+                window.treesGroup = group;
                 console.log("Grille de", count, "arbres chargée.");
             },
             undefined,
