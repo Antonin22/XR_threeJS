@@ -2,6 +2,14 @@
 
 Repository link: [https://github.com/Antonin22/XR_threeJS](https://github.com/Antonin22/XR_threeJS)
 
+## Play the Game Online
+
+You can play the game directly in your browser or mobile device without installation:
+
+**[Play XR Tree Capture Game](https://antonin22.github.io/XR_threeJS/)**
+
+For the best experience, we recommend using a mobile device with AR capabilities.
+
 ## Project Description
 
 An augmented reality (WebXR) game where you explore your environment to capture trees. The project uses Three.js to create an AR experience accessible through a compatible web browser.
