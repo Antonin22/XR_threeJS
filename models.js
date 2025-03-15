@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import TWEEN from '@tweenjs/tween.js';
 
 export class Model {
     /**
@@ -70,6 +71,42 @@ export class Model {
         }
     }
 
+
+    static fadeOutTree(tree, onComplete) {
+        const originalScale = tree.scale.clone();
+
+        new TWEEN.Tween(tree.scale)
+            .to({ x: 0.001, y: 0.001, z: 0.001 }, 500)
+            .easing(TWEEN.Easing.Quadratic.In)
+            .onComplete(() => {
+                if (onComplete) onComplete(tree, originalScale);
+            })
+            .start();
+    }
+
+
+    static fadeInTree(tree, originalScale) {
+        tree.scale.set(0.001, 0.001, 0.001);
+
+        new TWEEN.Tween(tree.scale)
+            .to({ x: originalScale.x, y: originalScale.y, z: originalScale.z }, 500)
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .start();
+    }
+
+
+    static relocateTree(tree, bounds = { minX: -5, maxX: 5, minZ: -5, maxZ: 5, y: 0 }) {
+        const { minX, maxX, minZ, maxZ, y } = bounds;
+
+        const newX = Math.random() * (maxX - minX) + minX;
+        const newZ = Math.random() * (maxZ - minZ) + minZ;
+
+        const newRotY = Math.random() * Math.PI * 2;
+
+        tree.position.set(newX, y, newZ);
+        tree.rotation.y = newRotY;
+    }
+
     static loadGrid(scene, count, basePosition, options = {}) {
         const spacing = options.spacing || 2;
         const scale = options.scale || 0.3;
@@ -95,7 +132,7 @@ export class Model {
                             child.receiveShadow = true;
                         }
                     });
-                    // Rotation aléatoire
+
                     clone.rotation.y = Math.random() * Math.PI * 2;
                     clone.scale.set(scale, scale, scale);
                     clone.position.set(
@@ -103,17 +140,59 @@ export class Model {
                         basePosition.y,
                         basePosition.z + (zIndex * spacing - offset)
                     );
+
+                    clone.userData.originalScale = { x: scale, y: scale, z: scale };
                     group.add(clone);
                 }
                 scene.add(group);
-                // Affectation du groupe à la variable globale pour collision
-                window.treesGroup = group;
+
+                if (window.setTreesGroup) {
+                    window.setTreesGroup(group);
+                } else {
+                    console.warn("La fonction setTreesGroup n'est pas disponible pour assigner le groupe d'arbres");
+                }
                 console.log("Grille de", count, "arbres chargée.");
+
+                Model.startTreeCycle(group, {
+                    minX: basePosition.x - offset,
+                    maxX: basePosition.x + offset,
+                    minZ: basePosition.z - offset,
+                    maxZ: basePosition.z + offset,
+                    y: basePosition.y
+                });
             },
             undefined,
             (error) => {
                 console.error("Erreur lors du chargement du modèle d'arbre (grid) :", error);
             }
         );
+    }
+
+
+    static startTreeCycle(treeGroup, bounds) {
+        if (!treeGroup || !treeGroup.children || treeGroup.children.length === 0) return;
+
+        const getRandomTree = () => {
+            if (treeGroup.children.length === 0) return null;
+            const index = Math.floor(Math.random() * treeGroup.children.length);
+            return treeGroup.children[index];
+        };
+
+
+        const cycleTree = () => {
+            const tree = getRandomTree();
+            if (!tree) return;
+            Model.fadeOutTree(tree, (tree, originalScale) => {
+
+                Model.relocateTree(tree, bounds);
+
+
+                Model.fadeInTree(tree, originalScale);
+            });
+
+            setTimeout(cycleTree, Math.random() * 2000 + 1000);
+        };
+
+        setTimeout(cycleTree, 2000);
     }
 }
