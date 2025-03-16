@@ -255,7 +255,7 @@ function createScoreDisplay3D() {
       opacity: 0.7,
       transparent: true,
       side: THREE.DoubleSide,
-      wireframe: true
+      wireframe: false
     })
   );
   innerBorder.scale.set(1.01, 1.03, 1);
